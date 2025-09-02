@@ -1,0 +1,23 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn.lock
+package-lock.json
+
+# Ambiente
+.env
+.env.*
+.DS_Store
+
+# Logs/coverage
+logs/
+*.log
+coverage/
+
+# Editor/OS
+.vscode/
+.idea/
+Thumbs.db
+
+# Build/output
+dist/
