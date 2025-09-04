@@ -1,0 +1,158 @@
+openapi: 3.0.3
+info:
+  title: API Agenda de Manicure & Salão
+  description: API para gerenciar agendamentos do salão.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Dev local
+tags:
+  - name: Agendamentos
+paths:
+  /v1/agendamentos:
+    get:
+      tags: [Agendamentos]
+      summary: Listar agendamentos
+      parameters:
+        - in: query
+          name: data
+          schema: { type: string, format: date }
+          description: YYYY-MM-DD
+        - in: query
+          name: status
+          schema: { $ref: '#/components/schemas/Status' }
+        - in: query
+          name: servico
+          schema: { $ref: '#/components/schemas/Servico' }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: Lista paginada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page: { type: integer }
+                  size: { type: integer }
+                  total: { type: integer }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Agendamento' }
+    post:
+      tags: [Agendamentos]
+      summary: Criar agendamento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgendamentoInput' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '400':
+          description: Erro de validação
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /v1/agendamentos/{id}:
+    get:
+      tags: [Agendamentos]
+      summary: Obter por ID
+      parameters: [ { $ref: '#/components/parameters/IdParam' } ]
+      responses:
+        '200': { description: Ok, content: { application/json: { schema: { $ref: '#/components/schemas/Agendamento' }}}}
+        '404': { description: Não encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
+    put:
+      tags: [Agendamentos]
+      summary: Atualizar
+      parameters: [ { $ref: '#/components/parameters/IdParam' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgendamentoUpdate' }
+      responses:
+        '200': { description: Atualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Agendamento' }}}}
+        '400': { description: Erro de validação, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
+        '404': { description: Não encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
+    delete:
+      tags: [Agendamentos]
+      summary: Excluir
+      parameters: [ { $ref: '#/components/parameters/IdParam' } ]
+      responses:
+        '200': { description: Excluído, content: { application/json: { schema: { $ref: '#/components/schemas/DeleteResult' }}}}
+        '404': { description: Não encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
+        '400': { description: Regra de negócio, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
+components:
+  parameters:
+    IdParam:
+      in: path
+      name: id
+      required: true
+      schema: { type: integer, minimum: 1 }
+  schemas:
+    Servico:
+      type: string
+      enum: [manicure, pedicure, unhas_gel, fibra_vidro, blindagem, spa_pes]
+    Status:
+      type: string
+      enum: [agendado, confirmado, em_atendimento, concluido, cancelado]
+    Agendamento:
+      type: object
+      required: [id, cliente_nome, cliente_telefone, servico, data, hora_inicio, duracao_min, status]
+      properties:
+        id: { type: integer, example: 1 }
+        cliente_nome: { type: string, example: "Ana Souza" }
+        cliente_telefone: { type: string, example: "(54) 99999-1234" }
+        servico: { $ref: '#/components/schemas/Servico' }
+        data: { type: string, format: date, example: "2025-09-03" }
+        hora_inicio: { type: string, pattern: "^([01]\\d|2[0-3]):[0-5]\\d$", example: "14:00" }
+        duracao_min: { type: integer, minimum: 15, example: 60 }
+        preco: { type: number, format: float, example: 70.00 }
+        status: { $ref: '#/components/schemas/Status' }
+        observacoes: { type: string, example: "Preferência por esmalte nude" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    AgendamentoInput:
+      allOf: [ { $ref: '#/components/schemas/Agendamento' } ]
+      properties:
+        id: { readOnly: true }
+        created_at: { readOnly: true }
+        updated_at: { readOnly: true }
+    AgendamentoUpdate:
+      type: object
+      properties:
+        cliente_nome: { type: string }
+        cliente_telefone: { type: string }
+        servico: { $ref: '#/components/schemas/Servico' }
+        data: { type: string, format: date }
+        hora_inicio: { type: string, pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" }
+        duracao_min: { type: integer, minimum: 15 }
+        preco: { type: number, format: float, minimum: 0 }
+        status: { $ref: '#/components/schemas/Status' }
+        observacoes: { type: string }
+    DeleteResult:
+      type: object
+      required: [code, message, id]
+      properties:
+        code: { type: string, example: "OK" }
+        message: { type: string, example: "Agendamento excluído com sucesso" }
+        id: { type: integer, example: 1 }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, example: "VALIDATION_ERROR" }
+        message: { type: string, example: "Campo 'cliente_nome' é obrigatório." }
+        details:
+          type: array
+          items: { type: string }
